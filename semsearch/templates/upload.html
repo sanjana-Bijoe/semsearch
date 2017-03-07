@@ -1,0 +1,9 @@
+{% block content %}
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+     <input type="file" name="docfile">
+    <button type="submit">Upload</button>
+  </form>
+
+  <p><a href="http://127.0.0.1:8000/">Return to home</a></p>
+{% endblock %}

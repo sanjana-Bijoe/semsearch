@@ -1,0 +1,13 @@
+body {
+  min-height: 2000px;
+}
+
+.navbar-static-top {
+  margin-bottom: 19px;
+}
+@media(max-width:992px){
+.nav>li>a {
+padding-left: 10px;
+padding-right:10px
+    }
+}

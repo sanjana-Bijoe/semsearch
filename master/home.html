@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block main_content %}
+
+    <div class="col-md-8">
+      <h2>Question Answer Platform </h2>
+      <p>Academic Question Answer Platform aims at providing teachers and students a comprehensive and interactive discussion platform.
+        This project is an implementation of community based question answering services. It has a provision for teachers and students to post answers to an already existing question, upvote an answer, search for previously posted questions, upload files and allows verification of answers by the teachers. The questions posted will
+be categorised topic-wise.</p>
+
+{% if not user.is_authenticated %}
+      <p>
+      <a class="btn btn-lg btn-primary" href="{% url 'register' %}" role="button">Register &raquo;</a>
+      </p>
+{% endif %}
+    </div>
+{% endblock %}
+
+{% block login %}
+{% if user.is_authenticated %}
+<div class="col-md-4 ">
+<!-- <h3>Welcome {{request.user.first_name}}</h3> -->
+</div>
+
+{% else %}
+<div class="col-md-4 ">
+
+  <form method='POST' action=''>
+  {% csrf_token %}
+        {{ form | crispy }}
+        <input class='btn btn-primary' type='submit' value='login'/>
+        <input type="hidden" name="next" value="{{ next|escape }}" />
+
+  </form>
+</div>
+{% endif %}
+{% endblock %}
