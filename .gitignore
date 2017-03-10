@@ -1,3 +1,6 @@
 *.pyc
 *.pyo
 ./semsearch/migrations/*
+./neuraltalk2/checkpoint_v1_cpu/*
+./deps
+./media

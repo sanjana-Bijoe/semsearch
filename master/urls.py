@@ -24,6 +24,7 @@ urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^$',views.home, name='home'),
     url(r'^upload/',views.upload, name='uploads'),
+    url(r'^video/(?P<video_id>[0-9]+)/', views.video, name='video'),
 ]
 
 if settings.DEBUG:
