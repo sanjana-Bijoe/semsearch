@@ -30,10 +30,19 @@ def video(request, video_id):
     sorted_inverted = jsonDec.decode(a.invertedIndex)
     location = "../../media/uploads/" + name
     context = {
-        "sorted_inverted" : sorted_inverted,
+        "video_id":video_id,
         "name" : name,
-        "location": location
+        "location": location,
+        "sorted_inverted": sorted_inverted
     }
+    if request.GET.get('id', "") != "":
+        # id = request.GET.get('id', "")
+        # s = start_i2t(location[3:],"single_frame.py",str(int(id)))
+        # subprocess.check_output("cp /neuraltalk2/frames/frame%s.jpg ../media/uploads/" % id, cwd=str(cwd) + "/neuraltalk2/", shell=True)
+        # context["img_loc"] = "../../media/uploads/frame%d.jpg" % id
+        # context["img_desc"] = s[id]
+        return render(request, 'home.html', context)
+
     if request.POST.get('search',"") == "":
         return render(request, 'home.html', context)
 
@@ -67,7 +76,7 @@ def upload(request):
         documents = Document.objects.all()
         if name != "":
             location = "../media/uploads/"+ name
-            sorted_inverted = model_to_inverted_index(cwd+ "/static/media_root/uploads/"+ name)
+            sorted_inverted = model_to_inverted_index(cwd+ "/media/uploads/"+ name)
             print sorted_inverted
             convert_from_mili(sorted_inverted)
             val = 1
@@ -84,14 +93,16 @@ def upload(request):
 
 def convert_from_mili(index):
     for i, (key, value) in enumerate(index):
+        a = []
         for j in xrange(len(value)):
+            a.append(value[j])
             value[j] = convertMillis(value[j])
-            print value[j]
-        index[i] = (key, value)
-    print index
+        index[i] = (key, zip(value, a))
 
-def start_i2t(name):
-    subprocess.check_output("python video_to_frame.py %s" % name,cwd= str(cwd) + "/neuraltalk2/" , shell=True)
+
+def start_i2t(name,multi_or_single_frame="video_to_frame.py",param=""):
+    # print "python %s %s %s" % (multi_or_single_frame,name,param)
+    subprocess.check_output("python %s %s %s" % (multi_or_single_frame,name,param),cwd= str(cwd) + "/neuraltalk2/" , shell=True)
     a = subprocess.check_output(
         "th eval.lua -model checkpoint_v1_cpu/model_id1-501-1448236541.t7_cpu.t7  -image_folder frames/ -num_images -1 -gpuid -1",
         cwd= str(cwd) + "/neuraltalk2/", shell=True)
@@ -199,6 +210,10 @@ def boolean_modality(text, video_id):
     try:
         not_index = text.index("NOT")
         avoid_elements = sorted_inverted_index_bsearch(sorted_inverted, text[not_index + 1])
+        if avoid_elements != -1:
+            print "QWER" + str(avoid_elements)
+            avoid_elements = change(avoid_elements[1])
+            print avoid_elements
         text[not_index:not_index + 2] = [' '.join(text[not_index:not_index + 2])]
     except ValueError:
         pass
@@ -213,51 +228,68 @@ def boolean_modality(text, video_id):
     if text[1] == 'AND':
         if avoid_elements == -1:
             if not_index > 1:
-                return sorted_inverted_index_bsearch(sorted_inverted, text[0])[1]
+                return change(sorted_inverted_index_bsearch(sorted_inverted, text[0])[1])
             else:
-                return sorted_inverted_index_bsearch(sorted_inverted, text[2])[1]
+                return change(sorted_inverted_index_bsearch(sorted_inverted, text[2])[1])
         elif any(avoid_elements):
             if not_index > 1:
-                A = sorted_inverted_index_bsearch(sorted_inverted, text[0])
+                A = change(sorted_inverted_index_bsearch(sorted_inverted, text[0])[1])
                 if A == -1:
                     return -1
             else:
-                A = sorted_inverted_index_bsearch(sorted_inverted, text[2])
+                A = change(sorted_inverted_index_bsearch(sorted_inverted, text[2])[1])
                 if A == -1:
                     return -1
-            print list(set(set(A[1]) - set(avoid_elements[1])))
+            print list(set(set(A) - set(avoid_elements)))
 
         else:
             A = sorted_inverted_index_bsearch(sorted_inverted, text[0])
             B = sorted_inverted_index_bsearch(sorted_inverted, text[2])
             if A == -1 or B == -1:
                 return -1
-            return list(set(A[1]) & set(B[1]))
+            A = change(A[1])
+            B = change(B[1])
+            s = list(set(A) & set(B))
+            d = []
+            for i in s:
+                d.append(convertMillis(i))
+            return d
 
     if text[1] == 'OR':
         if avoid_elements == -1:
             if not_index > 1:
-                return sorted_inverted_index_bsearch(sorted_inverted, text[0])[1]
+                return change(sorted_inverted_index_bsearch(sorted_inverted, text[0])[1])
             else:
-                return sorted_inverted_index_bsearch(sorted_inverted, text[2])[1]
+                return change(sorted_inverted_index_bsearch(sorted_inverted, text[2])[1])
         elif any(avoid_elements):
             if not_index > 1:
-                A = sorted_inverted_index_bsearch(sorted_inverted, text[0])
+                A = change(sorted_inverted_index_bsearch(sorted_inverted, text[0])[1])
                 if A == -1 :
                     return -1
             else:
-                A = sorted_inverted_index_bsearch(sorted_inverted, text[2])
+                A = change(sorted_inverted_index_bsearch(sorted_inverted, text[2])[1])
                 if A == -1 :
                     return -1
-            return list(set(A[1]) - set(avoid_elements[1]))
+            return list(set(A) - set(avoid_elements))
 
         else:
             A = sorted_inverted_index_bsearch(sorted_inverted, text[0])
             B = sorted_inverted_index_bsearch(sorted_inverted, text[2])
             if A == -1 or B == -1:
                 return -1
-            s = set(A[1]) | set(B[1])
-            return list(s)
+            A = change(A[1])
+            B = change(B[1])
+            print A
+            print B
+            # print s
+
+            s = list(set(A) | set(B))
+            d = []
+            for i in s:
+                d.append(convertMillis(i))
+
+            print d
+            return d
 
 
 def convertMillis(millis):
@@ -279,10 +311,10 @@ def temporal_modality(text, video_id):
         if A == -1 or B == -1:
             return -1
         temporal = []
-        for a in A[1]:
-            for b in B[1]:
+        for a in change(A[1]):
+            for b in change(B[1]):
                 if a < b:
-                    temporal.append((a, b))
+                    temporal.append((convertMillis(a), convertMillis(b)))
         return temporal
 
     if text[1] == "after":
@@ -291,12 +323,17 @@ def temporal_modality(text, video_id):
         if A == -1 or B == -1:
             return -1
         temporal = []
-        for a in A[1]:
-            for b in B[1]:
+        for a in change(A[1]):
+            for b in change(B[1]):
                 if a > b:
-                    temporal.append((a, b))
+                    temporal.append((convertMillis(a), convertMillis(b)))
         return temporal
 
+def change(a):
+    b = []
+    for i in a:
+        b.append(int(i[1]))
+    return b
 #
 # if __name__ == "__main__":
 #     sorted_inverted = model_to_inverted_index()

@@ -13,12 +13,16 @@
     </form>
     <br>
     {{search_result}}
+    {{img_loc}}
+    {{img_desc}}
     <br>
     {{ not_valid }}
     <br>
     <br>
 </div>
-{% for i,c in sorted_inverted  %}
-  <p>{{ i }}     {{c}}</p>
-
+{% for i,c in sorted_inverted %}
+<p>{{ i }}</p>
+    {% for d,e in c %}
+     <a href="/video/{{video_id}}/?id={{e}}">{{d}}</a> <br>
+    {% endfor %}
 {% endfor %}

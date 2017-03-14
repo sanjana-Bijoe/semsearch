@@ -110,12 +110,17 @@ Powered by <a href='#' target='_blank'>Blogger</a>.
 </div>
 </div></div>
 </div>
-<form action='/search' method='get'>
-<div class='col-sm-6' id='header-search'>
-<span class='glyphicon glyphicon-search search-icon'></span>
-<input id='search' name='q' placeholder='Search here...' value=''/>
-</div>
-</form>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        Search:<br>
+        <input type="text" name="search"><br>
+        <button type="submit">Submit</button>
+    </form>
+
+
+
+
+
 <div class='col-sm-3' id='header-social'><!-- Edit Social Icons -->
 <a href='#'><i class='fa fa-facebook'></i></a>
 <a href='#'><i class='fa fa-twitter'></i></a>
@@ -166,17 +171,6 @@ Powered by <a href='#' target='_blank'>Blogger</a>.
 <div class='top-carousel-section section' id='top-carousel-section'><div class='widget HTML' data-version='1' id='HTML1'>
 <h2 class='title'>Featured Videos</h2>
 <div class='widget-content'>
-        {{search_result}}
-    {{img_loc}}
-    {{img_desc}}
-    <br>
-    {{ not_valid }}
-    {% for i,c in sorted_inverted %}
-<p>{{ i }}</p>
-    {% for d,e in c %}
-     <a href="/video/{{video_id}}/?id={{e}}">{{d}}</a> <br>
-    {% endfor %}
-{% endfor %}
 </div>
 <div class='clear'></div>
 <span class='widget-item-control'>
@@ -197,10 +191,10 @@ Powered by <a href='#' target='_blank'>Blogger</a>.
 <div class='blog-posts hfeed'><div class='row'>
 
                     <div class="date-outer">
-                  
+
 
                     <div class="date-posts">
-                  
+
 <div class='post-outer'>
 <div class='post hentry uncustomized-post-template' itemprop='blogPost' itemscope='itemscope' itemtype='http://schema.org/BlogPosting'>
 <meta content='http://res.cloudinary.com/demo/image/vimeo/w_360,h_240/80209061.jpg' itemprop='image_url'/>
@@ -216,7 +210,7 @@ Powered by <a href='#' target='_blank'>Blogger</a>.
 <div class='post-body entry-content' id='post-body-3073385831539912780' itemprop='description articleBody'>
 <div id='summary3073385831539912780'>
 <video width="320" height="240" controls>
-    <source src="{{ location }}" type="video/mp4"> Your browser does not support the video tag.
+  <source src="{% static 'video/1.mp4' %}" type="video/mp4">
 </video></div>
 <div style='clear: both;'></div>
 <div style='clear: both;'></div>
@@ -260,7 +254,7 @@ Powered by <a href='#' target='_blank'>Blogger</a>.
 </div>
 </div>
 </div></div>
-                
+
 </div></div>
 <div class='clear'></div>
 <div class='blog-feeds'>
@@ -336,8 +330,8 @@ Subscribe to:
             </div>
         </div>
             {% load static %}
-        <div class="col-sm-1 text-center"/> 
-        <div class="col-sm-1 text-center"/>  <div class="col-sm-1 text-center"/>         
+        <div class="col-sm-1 text-center"/>
+        <div class="col-sm-1 text-center"/>  <div class="col-sm-1 text-center"/>
         <div class="row">
             <div class="col-sm-1 text-center">
                 <img class="round img-center" src="{% static 'img/200x200.png' %}" alt="">
@@ -370,7 +364,7 @@ Subscribe to:
                 </h3>
 
             </div>
-        
+
         </div>
   </div>
 
