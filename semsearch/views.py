@@ -13,6 +13,8 @@ import subprocess
 import re
 import json
 import operator
+import cv2
+import math
 cwd = dirname(dirname(realpath(__file__)))
 def home(request):
     tag = "hello"
@@ -25,26 +27,28 @@ def home(request):
 
 def video(request, video_id):
     a = Index.objects.get(video_id=video_id)
+
     name = a.name
     jsonDec = json.decoder.JSONDecoder()
     sorted_inverted = jsonDec.decode(a.invertedIndex)
+    images_captured = jsonDec.decode(a.images)
+    print sorted_inverted
     location = "../../media/uploads/" + name
     context = {
         "video_id":video_id,
         "name" : name,
         "location": location,
-        "sorted_inverted": sorted_inverted
+        "sorted_inverted": sorted_inverted,
     }
-    if request.GET.get('id', "") != "":
-        # id = request.GET.get('id', "")
-        # s = start_i2t(location[3:],"single_frame.py",str(int(id)))
-        # subprocess.check_output("cp /neuraltalk2/frames/frame%s.jpg ../media/uploads/" % id, cwd=str(cwd) + "/neuraltalk2/", shell=True)
-        # context["img_loc"] = "../../media/uploads/frame%d.jpg" % id
-        # context["img_desc"] = s[id]
-        return render(request, 'home.html', context)
+    if request.GET.get('position', "") != "":
+        position = request.GET.get('position', "")
+        context["img_loc"] = "../../media/frames/frame%s.jpg" % position
+        context["position"] = convertMillis(position)
+        context["img_desc"] = images_captured[position]
+        return render(request, 'videotube.html', context)
 
     if request.POST.get('search',"") == "":
-        return render(request, 'home.html', context)
+        return render(request, 'videotube.html', context)
 
     if request.method == 'POST' and request.POST.get('search',"") != "":
         if "after" in request.POST.get('search',"") or "before" in request.POST.get("search",""):
@@ -62,7 +66,7 @@ def video(request, video_id):
                 context["not_valid"] = "there was two NOT's present. Only a boolean query allowed."
             else:
                 context["search_result"] = res
-        return render(request, 'home.html', context)
+        return render(request, 'videotube.html', context)
 
 def upload(request):
     name = ""
@@ -76,13 +80,14 @@ def upload(request):
         documents = Document.objects.all()
         if name != "":
             location = "../media/uploads/"+ name
-            sorted_inverted = model_to_inverted_index(cwd+ "/media/uploads/"+ name)
+            s = convert_video_to_frame(cwd+ "/media/uploads/"+ name)
+            sorted_inverted = model_to_inverted_index(s)
             print sorted_inverted
             convert_from_mili(sorted_inverted)
             val = 1
             if len(Index.objects.filter()) > 0:
                 val = len(Index.objects.filter()) + 1
-            b = Index(invertedIndex=json.dumps(sorted_inverted),name=name,video_id=val)
+            b = Index(invertedIndex=json.dumps(sorted_inverted),name=name,video_id=val,images=json.dumps(s))
             vid_id = b.video_id
             b.save()
             return redirect("/video/%s" % vid_id)
@@ -100,21 +105,46 @@ def convert_from_mili(index):
         index[i] = (key, zip(value, a))
 
 
-def start_i2t(name,multi_or_single_frame="video_to_frame.py",param=""):
-    # print "python %s %s %s" % (multi_or_single_frame,name,param)
-    subprocess.check_output("python %s %s %s" % (multi_or_single_frame,name,param),cwd= str(cwd) + "/neuraltalk2/" , shell=True)
-    a = subprocess.check_output(
-        "th eval.lua -model checkpoint_v1_cpu/model_id1-501-1448236541.t7_cpu.t7  -image_folder frames/ -num_images -1 -gpuid -1",
-        cwd= str(cwd) + "/neuraltalk2/", shell=True)
-    print a
-    content = a.split("\n")
-    number_of_images = re.search('[0-9]+', content[2]).group()
+def convert_video_to_frame(name):
+    subprocess.check_output("rm -rf ./media/frames/*",shell=True)
+    vidCap = cv2.VideoCapture(name)
+    frameRate = vidCap.get(cv2.cv.CV_CAP_PROP_FPS)
+    captureIntervals = 10
     s = {}
-    for i in xrange(5, len(content) - 1, 3):  # 5,8,11
-        milisec_of_frame = re.search('[0-9]+', content[i - 1].split('"')[1]).group()
-        s[milisec_of_frame] = content[i][9:]
-    return s
+    while (vidCap.isOpened()):
+        frameId = vidCap.get(cv2.cv.CV_CAP_PROP_POS_FRAMES)  # starting position is 0.. returns current frame position
+        success, image = vidCap.read()
+        if (success != True):
+            break
+        if (frameId % math.floor(captureIntervals * frameRate) == 0):  # 1 frame in 1 sec
+            millisec = vidCap.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
+            print 'Read a new frame : ', str(millisec)
+            cv2.imwrite("./media/frames/frame%d.jpg" % int(millisec), image)  # save frame as JPEG file
+    vidCap.release()
+    return caption_image()
+#
+# (0,1,4,5,8,9) 0: image file name 1: best caption
+def caption_image():
+    code = "bazel-bin/im2txt/run_inference "
+    checkpoint_path = "--checkpoint_path=" + str(cwd) + "/im2txt/model/train "
+    vocab_file = "--vocab_file=" + str(cwd) + "/im2txt/data/mscoco/word_counts.txt "
+    input_files = "--input_files=" + str(cwd) + "/media/frames/frame*.jpg"
+    a = subprocess.check_output(code + checkpoint_path + vocab_file + input_files, cwd=str(cwd) + "/im2txt/",
+                                shell=True)
+    b = a.split("\n")
+    s = {}
 
+    for i in range(0,len(b)-1,4):
+        if (b[i] != ''):
+            millisec = int(re.search(r'\d+', b[i]).group())
+            result = re.search('0\) (.*) \(', b[i+1])
+            s[str(millisec)] = result.group(1)
+
+    # result = re.search('0\) (.*) \(', a.split("\n")[1])
+    # print result.group(1)
+    # s[str(millisec)] = result.group(1)
+    print s
+    return s
 
 def word_split(text, frameno):
     print text
@@ -136,7 +166,7 @@ def word_split(text, frameno):
 
 
 _WORD_MIN_LENGTH = 2
-_STOP_WORDS = ["that", "were"]
+_STOP_WORDS = ["that", "were","and"]
 
 
 def words_cleanup(words):
@@ -170,9 +200,8 @@ def inverted_index(text, frameno,inverted):
         locations.append(index)
 
 
-def model_to_inverted_index(file):
+def model_to_inverted_index(s):
     inverted = {}
-    s = start_i2t(file)
     for key, value in s.iteritems():
         inverted_index(value, key,inverted)
     return sorted(inverted.items(), key=operator.itemgetter(0))
@@ -199,22 +228,25 @@ def sorted_inverted_index_bsearch(alist, item):
 
 
 def boolean_modality(text, video_id):
-
     text = text.split(" ")
     a = Index.objects.get(video_id=video_id)
     jsonDec = json.decoder.JSONDecoder()
     sorted_inverted = jsonDec.decode(a.invertedIndex)
-
     avoid_elements = ()
     not_index = -1
     try:
         not_index = text.index("NOT")
         avoid_elements = sorted_inverted_index_bsearch(sorted_inverted, text[not_index + 1])
         if avoid_elements != -1:
-            print "QWER" + str(avoid_elements)
-            avoid_elements = change(avoid_elements[1])
+            print "Avoid Elements: "
             print avoid_elements
+            avoid_elements = change(avoid_elements[1])
+            print "after change() on avoid elements: "
+            print avoid_elements
+        print "old text \n"
+        print text
         text[not_index:not_index + 2] = [' '.join(text[not_index:not_index + 2])]
+        print text
     except ValueError:
         pass
 
@@ -225,6 +257,12 @@ def boolean_modality(text, video_id):
     except ValueError:
         pass
 
+    if len(text) == 1:
+        A = change(sorted_inverted_index_bsearch(sorted_inverted, text[0])[1])
+        B = []
+        for i in A:
+            B.append(convertMillis(i))
+        return B
     if text[1] == 'AND':
         if avoid_elements == -1:
             if not_index > 1:
@@ -240,14 +278,21 @@ def boolean_modality(text, video_id):
                 A = change(sorted_inverted_index_bsearch(sorted_inverted, text[2])[1])
                 if A == -1:
                     return -1
-            print list(set(set(A) - set(avoid_elements)))
+            list_in_mili = list(set(set(A) - set(avoid_elements)))
+            d = []
+            for i in list_in_mili:
+                d.append(convertMillis(i))
+            return d
 
         else:
             A = sorted_inverted_index_bsearch(sorted_inverted, text[0])
             B = sorted_inverted_index_bsearch(sorted_inverted, text[2])
             if A == -1 or B == -1:
                 return -1
+            print "A:\n"
+            print A
             A = change(A[1])
+            print A
             B = change(B[1])
             s = list(set(A) & set(B))
             d = []
@@ -270,7 +315,11 @@ def boolean_modality(text, video_id):
                 A = change(sorted_inverted_index_bsearch(sorted_inverted, text[2])[1])
                 if A == -1 :
                     return -1
-            return list(set(A) - set(avoid_elements))
+            list_in_mili_or = list(set(A) - set(avoid_elements))
+            d = []
+            for i in list_in_mili_or:
+                d.append(convertMillis(i))
+            return d
 
         else:
             A = sorted_inverted_index_bsearch(sorted_inverted, text[0])
@@ -279,15 +328,10 @@ def boolean_modality(text, video_id):
                 return -1
             A = change(A[1])
             B = change(B[1])
-            print A
-            print B
-            # print s
-
             s = list(set(A) | set(B))
             d = []
             for i in s:
                 d.append(convertMillis(i))
-
             print d
             return d
 

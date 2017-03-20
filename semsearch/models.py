@@ -14,5 +14,6 @@ class Document(models.Model):
 class Index(models.Model):
     video_id = models.IntegerField(null=False,primary_key=True)
     invertedIndex = models.TextField(null=True)
+    images = models.TextField(null=True,default="")
     name = models.TextField(null=True)
 

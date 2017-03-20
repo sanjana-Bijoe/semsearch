@@ -109,21 +109,15 @@ Powered by <a href='#' target='_blank'>Blogger</a>.
 </a>
 </div>
 </div></div>
-</div>
-<form action='/search' method='get'>
+</div>{%if video_id%}
+<form action='/video/{{video_id}}/' enctype="multipart/form-data" method='post'>
+    {% csrf_token %}
 <div class='col-sm-6' id='header-search'>
 <span class='glyphicon glyphicon-search search-icon'></span>
-<input id='search' name='q' placeholder='Search here...' value=''/>
+<input id='search' name='search' placeholder='Search here...' value=''/>
 </div>
 </form>
-<div class='col-sm-3' id='header-social'><!-- Edit Social Icons -->
-<a href='#'><i class='fa fa-facebook'></i></a>
-<a href='#'><i class='fa fa-twitter'></i></a>
-<a href='#'><i class='fa fa-google-plus'></i></a>
-<a href='#'><i class='fa fa-instagram'></i></a>
-<a href='#'><i class='fa fa-linkedin'></i></a>
-<a href='#'><i class='fa fa-rss'></i></a>
-</div>
+{%endif%}
 </div>
 </div>
 </div>
@@ -141,50 +135,13 @@ Powered by <a href='#' target='_blank'>Blogger</a>.
 <nav class='collapse navbar-collapse bs-navbar-collapse' role='navigation'>
 <ul class='nav navbar-nav list-inline menu' id='menu-header-menu'><!-- Edit Main Menu -->
 <li class='active'><a href='http://127.0.0.1:8000/'>Home</a></li>
-<li class='dropdown'><a href='#'>Menu</a>
-<ul class='dropdown-menu'>
-<li><a href='#'>Sub Item 1</a></li>
-<li><a href='#'>Sub Item 2</a></li>
-<li class='dropdown-submenu'><a href='#'>Sub Item 3 With Subs</a>
-<ul class='dropdown-menu'>
-<li><a href='#'>Sub Sub Item 1</a></li>
-<li><a href='#'>Sub Sub Item 2</a></li>
-</ul>
-</li>
-<li><a href='#'>Sub Item 4</a></li>
-<li><a href='#'>Sub Item 5</a></li>
-</ul>
-</li>
 <li><a href='http://127.0.0.1:8000/upload'>Upload Video</a></li>
 </ul>
 </nav>
 </div>
 </div>
 <!-- NAVIGATION ENDS! -->
-<!-- TOP CAROUSEL -->
-<div class='top-carousel'>
-<div class='top-carousel-section section' id='top-carousel-section'><div class='widget HTML' data-version='1' id='HTML1'>
-<h2 class='title'>Featured Videos</h2>
-<div class='widget-content'>
-        {{search_result}}
-    {{img_loc}}
-    {{img_desc}}
-    <br>
-    {{ not_valid }}
-    {% for i,c in sorted_inverted %}
-<p>{{ i }}</p>
-    {% for d,e in c %}
-     <a href="/video/{{video_id}}/?id={{e}}">{{d}}</a> <br>
-    {% endfor %}
-{% endfor %}
-</div>
-<div class='clear'></div>
-<span class='widget-item-control'>
-</span>
-<div class='clear'></div>
-</div></div>
-</div>
-<!-- TOP CAROUSEL ENDS! -->
+
 <!-- MAIN CONTAINER -->
 <div class='container'>
 <div class='row'>
@@ -213,13 +170,27 @@ Powered by <a href='#' target='_blank'>Blogger</a>.
 <div class='post-header'>
 <div class='post-header-line-1'></div>
 </div>
-<div class='post-body entry-content' id='post-body-3073385831539912780' itemprop='description articleBody'>
+    <div class='post-body entry-content' id='post-body-3073385831539912780' itemprop='description articleBody'></div>
 <div id='summary3073385831539912780'>
-<video width="320" height="240" controls>
+<video width="800" height="400" controls>
     <source src="{{ location }}" type="video/mp4"> Your browser does not support the video tag.
 </video></div>
-<div style='clear: both;'></div>
-<div style='clear: both;'></div>
+<div style='clear: both;'> <br><br><br> {% if search_result %} <b> Search Results:</b>{%for i in search_result%} {{i}}, {% endfor %} {% endif %}
+    {% if img_loc %}
+    <br>
+    <b>Image Description at {{position}}</b><br>
+    <img src="{{img_loc}}" alt="" height="200" width="200"><br>
+    {{img_desc}}
+    {%endif%}
+    <br>
+</div>
+<div style='clear: both;'>    {% for i,c in sorted_inverted %}
+    <p><b>{{ i }}</b></p>
+    <ul>
+    {% for d,e in c %}
+     <li ><a href="/video/{{video_id}}/?position={{e}}">{{d}}</a></li>
+    {% endfor %}</ul>
+{% endfor %}</div>
 </div>
 <div class='post-footer'>
 <div class='post-footer-line post-footer-line-1'>
@@ -270,52 +241,10 @@ Subscribe to:
 </div>
 </div>
 
-</div></div>
+</div>
+</div>
+</div>
 
-</div>
-<!-- Main Left Ends! -->
-<!-- Sidebar Right -->
-<div class='col-sm-4 sidebar'>
-<div class='sidebar-widgets section' id='sidebar-widgets'><div class='widget HTML' data-version='1' id='HTML3'>
-<h2 class='title'>Social Pages</h2>
-<div class='widget-content'>
-<div class="social-counter-item">
-<a target="_blank" href="#">
-<i class="fa fa-facebook"></i>
-<span class="counter">132</span>
-<span class="counter-text">Fans</span>
-</a>
-</div>
-<div class="social-counter-item">
-<a target="_blank" href="#">
-<i class="fa fa-twitter"></i>
-<span class="counter">54</span>
-<span class="counter-text">Followers</span>
-</a>
-</div>
-<div class="social-counter-item">
-<a target="_blank" href="#">
-<i class="fa fa-google-plus"></i>
-<span class="counter">0</span>
-<span class="counter-text">Fans</span>
-</a>
-</div>
-<div class="social-counter-item last">
-<a target="_blank" href="#">
-<i class="fa fa-rss"></i>
-<span class="counter">155</span>
-<span class="counter-text">Subscribers</span>
-</a>
-</div>
-</div>
-<div class='clear'></div>
-<span class='widget-item-control'>
-</span>
-<div class='clear'></div>
-</div><div class='widget HTML' data-version='1' id='HTML5'>
-<h2 class='title'>Recent Posts</h2>
-<div class='widget-content'>
-</div>
 <div class='clear'></div>
 <div class='clear'></div>
 </div>

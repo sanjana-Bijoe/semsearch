@@ -5,7 +5,7 @@
 </video>
 
 <div>
-    <form method="post" enctype="multipart/form-data">
+    <form method="post" action='/video/{{video_id}}' >
         {% csrf_token %}
         Search:<br>
         <input type="text" name="search"><br>
@@ -23,6 +23,6 @@
 {% for i,c in sorted_inverted %}
 <p>{{ i }}</p>
     {% for d,e in c %}
-     <a href="/video/{{video_id}}/?id={{e}}">{{d}}</a> <br>
+     <a href="/video/{{video_id}}/?position={{e}}">{{d}}</a> <br>
     {% endfor %}
 {% endfor %}
