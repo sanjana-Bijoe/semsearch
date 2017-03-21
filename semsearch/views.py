@@ -15,6 +15,43 @@ import json
 import operator
 import cv2
 import math
+from time import time
+import json,os
+
+
+def calctime(num):
+    if not os.path.exists("data.txt"):
+        one_file = "--input_files=" + str(cwd) + "/media/frames/frame"+num+".jpg"
+        no_file = "--input_files=" + str(cwd) + "/media/frames/"
+        code = "bazel-bin/im2txt/run_inference "
+        checkpoint_path = "--checkpoint_path=" + str(cwd) + "/im2txt/model/train "
+        vocab_file = "--vocab_file=" + str(cwd) + "/im2txt/data/mscoco/word_counts.txt "
+        input_files = "--input_files=" + str(cwd) + "/media/frames/frame*.jpg"
+
+        t0 = time()
+        a = subprocess.check_output(code + checkpoint_path + vocab_file + no_file, cwd=str(cwd) + "/im2txt/",
+                                    shell=True)
+        t1 = time()
+        a = subprocess.check_output(code + checkpoint_path + vocab_file + one_file, cwd=str(cwd) + "/im2txt/",
+                                    shell=True)
+        t2 = time()
+        ltime = t1-t0
+        ptime = t2-t1 - ltime
+        print (ltime,ptime)    
+        data = [ltime,ptime]
+        with open('data.txt', 'w') as outfile:
+            json.dump(data, outfile)
+        return ltime,ptime
+    else:
+        x =0
+        with open('data.txt', 'r') as outfile:
+            x = json.load(outfile)
+        return x[0],x[1]
+
+
+
+
+
 cwd = dirname(dirname(realpath(__file__)))
 def home(request):
     tag = "hello"
@@ -23,6 +60,7 @@ def home(request):
         "tag": tag,
         "video": video
     }
+    
     return render(request, "videotube.html", context)
 
 def video(request, video_id):
@@ -109,28 +147,44 @@ def convert_video_to_frame(name):
     subprocess.check_output("rm -rf ./media/frames/*",shell=True)
     vidCap = cv2.VideoCapture(name)
     frameRate = vidCap.get(cv2.cv.CV_CAP_PROP_FPS)
-    captureIntervals = 10
+    captureIntervals = 5
     s = {}
+    count = 0
+    m = 0
     while (vidCap.isOpened()):
         frameId = vidCap.get(cv2.cv.CV_CAP_PROP_POS_FRAMES)  # starting position is 0.. returns current frame position
         success, image = vidCap.read()
         if (success != True):
             break
-        if (frameId % math.floor(captureIntervals * frameRate) == 0):  # 1 frame in 1 sec
+        if ((frameId % math.floor(captureIntervals * frameRate)) == 0):  # 1 frame in 1 sec
             millisec = vidCap.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
-            print 'Read a new frame : ', str(millisec)
+            count+=1
+            print 'Read a new frame : id ',frameId,"milli", str(millisec),"num :",str(count)
+            
+            m = millisec
             cv2.imwrite("./media/frames/frame%d.jpg" % int(millisec), image)  # save frame as JPEG file
     vidCap.release()
+    
+    loadtime,dt = calctime(str(int(m)))
+    print "\n\nEstimated time :",loadtime + count*dt,'\n'    
+    
     return caption_image()
+
 #
 # (0,1,4,5,8,9) 0: image file name 1: best caption
 def caption_image():
+
+
     code = "bazel-bin/im2txt/run_inference "
     checkpoint_path = "--checkpoint_path=" + str(cwd) + "/im2txt/model/train "
     vocab_file = "--vocab_file=" + str(cwd) + "/im2txt/data/mscoco/word_counts.txt "
     input_files = "--input_files=" + str(cwd) + "/media/frames/frame*.jpg"
+    
+    t0 = time()
     a = subprocess.check_output(code + checkpoint_path + vocab_file + input_files, cwd=str(cwd) + "/im2txt/",
                                 shell=True)
+    t1 = time()
+    print "\n\nActual time :",t1-t0,'\n\n'
     b = a.split("\n")
     s = {}
 
@@ -195,8 +249,7 @@ def word_index(text, frameno):
 
 def inverted_index(text, frameno,inverted):
     for index, word in word_index(text, frameno):
-        locations = inverted.setdefault(word,
-                                        [])  # returns value to the key "word" and if word doesn't exist then [] returned
+        locations = inverted.setdefault(word,[])  # returns value to the key "word" and if word doesn't exist then [] returned
         locations.append(index)
 
 

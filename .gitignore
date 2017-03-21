@@ -14,5 +14,6 @@
 /im2txt/bazel-testlogs
 /im2txt/bazel-tf
 /im2txt/model/train/*
-
+/data.txt
+/db.sqlite3
 
