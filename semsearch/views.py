@@ -226,7 +226,7 @@ _STOP_WORDS = ["that", "were","and"]
 def words_cleanup(words):
     cleaned_words = []
     for index, word in words:
-        if len(word) < _WORD_MIN_LENGTH or word in _STOP_WORDS:
+        if len(word) <= _WORD_MIN_LENGTH or word in _STOP_WORDS:
             continue
         cleaned_words.append((index, word))
     return cleaned_words
